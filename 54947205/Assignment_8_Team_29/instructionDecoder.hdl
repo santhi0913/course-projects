@@ -1,0 +1,25 @@
+/*
+ Decodes the control signals from C-instruction:
+ write D, write M ,write A ,select line of mux 1 (sel1) , select line of mux2 (sel2) 
+*/
+CHIP instructionDecoder {
+    IN I[16];
+    OUT sel1,writeA,sel2,writeD,writeM;
+    PARTS:
+    // write D = I[15]*I[4]
+    And(a=I[15], b=I[4], out=writeD); 
+
+    // write A = I[15]~ + I[15]*I[5]
+    Not(in=I[15], out=w1);
+    And(a=I[15], b=I[5], out=w2);
+    Or(a=w1, b=w2, out=writeA);
+
+    //select line of mux1 (sel1) = I[15]~
+    Or(a=w1, b=w1, out=sel1);
+
+    //select line of mux2 (sel2) = I[15]*I[12]
+    And(a=I[15], b=I[12], out=sel2);
+
+    //write M = I[15]*I[3]
+    And(a=I[15], b=I[3], out=writeM);
+}

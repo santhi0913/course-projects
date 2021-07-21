@@ -1,0 +1,65 @@
+
+/*
+Takes the C- instruction, zr and ng as its inputs and outputs J value which indicates whether or not to Jump
+J = 0 : jump
+J = 1 : dont jump*/
+CHIP programCounter {
+    IN I[16],zr,ng;
+    OUT J;
+
+    PARTS:
+    Not(in=I[0], out=w0);
+    Not(in=I[1], out=w1);
+    Not(in=I[2], out=w2);
+    Not(in=zr, out=w3);
+    Not(in=ng, out=w4);
+
+    // JGT 001 : I[2]~ * I[1]~ * I[0] * zr~ * ng~
+    And(a=w2, b=w1, out=x1);
+    And(a=I[0], b=w3, out=x2);
+    And(a=x1, b=x2, out=x3);
+    And(a=x3, b=w4, out=y1);
+
+    // JEQ 010 : I[2]~ * I[1] * I[0]~ * zr
+    And(a=w2, b=I[1], out=x4);
+    And(a=w0, b=zr, out=x5);
+    And(a=x4, b=x5, out=y2);
+
+    // JGE 011 : I[2]~ * I[1] * I[0] * ng~ * zr
+    And(a=w2, b=I[1], out=x6);
+    And(a=I[0], b=w4, out=x7);
+    And(a=x6, b=x7, out=x16);
+    And(a=x16,b=zr,out=y3);
+
+    // JLT 100 : I[2] * I[1]~ * I[0]~ * ng * zr~
+    And(a=I[2], b=w1, out=x8);
+    And(a=w0, b=ng, out=x9);
+    And(a=x8, b=x9, out=x17);
+    And(a=x17, b=w3, out=y4);
+
+    // JNE 101 : I[2] * I[1]~ * I[0] * zr~
+    And(a=I[2], b=w1, out=x10);
+    And(a=I[0], b=w3, out=x11);
+    And(a=x10, b=x11, out=y5);
+
+    // JLE 110 : I[2] * I[1] * I[0]~ * zr * ng
+    And(a=I[2], b=I[1], out=x12);
+    And(a=w0, b=zr, out=x13);
+    And(a=x12, b=x13, out=x14);
+    And(a=ng, b=x14, out=y6);
+
+    // JMP 111 : I[2] * I[1] * I[0]
+    And(a=I[2], b=I[1], out=x15);
+    And(a=I[0], b=x15, out=y7);
+
+    // J = I[15] * (y1 + y2 + y3 + y4 + y5 + y6 + y7)
+    Or(a=y1, b=y1, out=z0);
+    Or(a=y2, b=y3, out=z1);
+    Or(a=y4, b=y5, out=z2);
+    Or(a=y6, b=y7, out=z3);
+    Or(a=z0, b=z1, out=z4);
+    Or(a=z2, b=z3, out=z5);
+    Or(a=z4, b=z5, out=Z);
+    And(a=I[15], b=Z, out=J);
+
+}

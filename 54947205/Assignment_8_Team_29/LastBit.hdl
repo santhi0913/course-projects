@@ -1,0 +1,9 @@
+/*
+It is used to find ng in Hack ALU
+*/
+CHIP LastBit{
+    IN x[16];
+    OUT out;
+    PARTS:
+    Or(a= false, b= x[15], out= out);
+}

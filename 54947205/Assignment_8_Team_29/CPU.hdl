@@ -1,0 +1,48 @@
+/*
+If instruction is an A-instruction, the CPU loads the 16-bit constant that the instruction represents into the
+A register. If instruction is a C-instruction, then 
+(i) the CPU causes the ALU to perform the computation
+specified by the instruction, and 
+(ii) the CPU causes this value to be stored in the subset of {A,D,M} registers
+specified by the instruction. If one of these registers is M, the CPU asserts the writeM control bit output
+(when writeM is 0, any value may appear in outM).
+
+When the reset input is 0, the CPU uses the ALU output and the jump directive specified by the
+instruction to compute the address of the next instruction, and emits this address to the pc output. If the
+reset input is 1, the CPU sets pc to 0.
+
+*/
+CHIP CPU {
+    IN inM[16],instruction[16],reset;
+    OUT outM[16] ,writeM,addressM[15],pc[15];
+    PARTS:
+    instructionDecoder( I=instruction, sel1=sel1,writeA=writeA,sel2=sel2,writeD=writeD,writeM=writeM);  
+    
+    // MUX1
+    Mux16(a=aluOut, b=instruction, sel=sel1, out=regA);  
+
+    // Register A
+    ARegister(in=regA, load=writeA, out=A);
+
+    // MUX2
+    Mux16(a=A, b=inM, sel=sel2, out=y);
+
+    // Register D
+    DRegister(in=aluOut, load=writeD, out=D);
+
+    // ALU
+    HackALU(x=D, y=y, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=aluOut, zr=zr, ng=ng);
+    
+    
+    //outputs to data memory
+    Or16(a=false, b=A, out[0..14]=addressM);
+    Or16(a=false, b=aluOut, out=outM);
+
+
+
+    //pc
+    programCounter(I=instruction, zr=zr, ng=ng, J=pcLoad); // if pcLoad is 1 , then jump to address in A
+    Not(in=pcLoad, out=pcInc); //if not pcLoad , then pcInc
+    PC(in=A, inc=pcInc , load=pcLoad, reset=reset, out[0..14]=pc);
+    
+}

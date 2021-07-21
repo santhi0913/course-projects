@@ -1,0 +1,13 @@
+/*
+It is used in CLA 16 to output 1s complement of input
+*/
+CHIP Xor4{
+IN a0,a1,a2,a3,op;
+OUT b0,b1,b2,b3;
+PARTS:
+Xor(a=a0,b=op,out=b0);
+Xor(a=a1,b=op,out=b1);
+Xor(a=a2,b=op,out=b2);
+Xor(a=a3,b=op,out=b3);
+
+}

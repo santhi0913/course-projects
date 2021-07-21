@@ -1,0 +1,52 @@
+/*Arithmetic and Logic Unit 
+It performs the arithmetic operations
+Its the Hack ALU that takes input as two 16-bit numbers x and y along with single bit input values zr,nx,zy,ny,f and no
+ALU truth table
+     zx | nx |zy |ny |f |no |out
+1.    1   0     1    0   1   0    0 
+2.    1   1     1    1   1   1    1
+3.    1   1     1    0   1   0   -1
+4.    0   0     1    1   0   0    x
+5.    1   1     0    0   0   0    y
+6.    0   0     1    1   0   1    x'
+7.    1   1     0    0   0   1    y'
+8.    0   0     1    1   0   1   -x
+9.    1   1     0    0   1   1   -y
+10.  0   1     1    1   1   1   x+1
+11.  1   1     0    1   1   1   y+1
+12.  0   0     1    1   1   0   x-1
+13.  1   1     0    0   1   0   y-1
+14.  0   0     0    0   1   0   x+y
+15.  0   1     0    0   1   1   x-y
+16.  0   0     0    1   1   1   y-x
+17.  0   0     0    0   0   0   x*y
+18.  0   1     0    1   0   1   x/y
+ 
+*/
+CHIP HackALU{
+    IN x[16],y[16],zx,nx,zy,ny,f,no;
+    OUT out[16],zr,ng;
+    PARTS:
+        //out
+        Mux16(a=x, b=false, sel=zx, out=w1);
+        Mux16(a=y, b=false, sel=zy, out=w2);
+        
+        Xor16(a=w1, b=nx, out=p);
+        Xor16(a=w2, b=ny, out=q);
+
+        CLA16(x=p, y=q, as=false, s=psumq);
+        And16(a=p, b=q, out=pandq);
+
+        Mux16(a=pandq, b=psumq, sel=f, out=r);
+        Xor16(a=r, b=no, out=out1);
+        Or16(a=false, b=out1, out=out);
+        
+        //zr
+        ORof16(x=out1, out=w3); //Or of 16 1bits
+        Not(in=w3, out=zr);
+        
+        //ng
+        LastBit(x=out1, out=ng); // out[15]
+        
+    
+}
