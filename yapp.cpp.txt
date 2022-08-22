@@ -1,0 +1,201 @@
+﻿#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <netinet/ip_icmp.h>
+#include <time.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <time.h>
+#include<chrono> 
+#include <iostream>
+
+
+using namespace std ;
+using namespace std::chrono ;
+
+
+// Define the Packet Constants
+// ping packet size
+#define PING_PKT_S 64
+   
+// Automatic port number
+#define PORT_NO 0 
+  
+// Automatic port number
+#define PING_SLEEP_RATE 1000000 
+  
+// Gives the timeout delay for receiving packets
+// in seconds
+#define RECV_TIMEOUT 10
+  
+// Define the Ping Loop
+int pingloop=1;
+
+
+struct ping_pkt
+{
+    struct icmphdr hdr;
+    char msg[PING_PKT_S-sizeof(struct icmphdr)];
+};
+
+
+
+
+void send_ping(int sockfd, struct sockaddr_in *ping_addr, struct in_addr ip_addr ){
+
+
+    int addr_len =0, flag=1;
+
+
+    struct ping_pkt pckt;
+    struct sockaddr_in r_addr;
+
+
+    struct timeval tv_out;
+    tv_out.tv_sec = RECV_TIMEOUT;
+    tv_out.tv_usec = 0;
+
+
+
+
+    // setting timeout of recv setting
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv_out, sizeof tv_out);
+
+
+    //filling packet
+    bzero(&pckt, sizeof(pckt));
+
+
+    
+    //pckt.icmp_code =0;
+    // icp = (struct icmp *)outpack;
+        // pckt.icp->icmp_type = ICMP_ECHO;
+        // pckt.icp->icmp_code = 0;
+        // pckt.icp->icmp_cksum = 0;
+        // pckt.icp->icmp_seq = 12345;
+        // pckt.icp->icmp_id = getpid();
+    pckt.hdr.type = ICMP_ECHO;
+    pckt.hdr.un.echo.id = htons(0);
+    pckt.hdr.un.echo.sequence = htons(1);
+    
+    auto start = high_resolution_clock::now() ;
+    if ( sendto(sockfd, &pckt, sizeof(pckt), 0, 
+        (struct sockaddr*) ping_addr, 
+        sizeof(*ping_addr)) <= 0)
+    {
+        printf("\nPacket Sending Failed!\n");
+        flag=0;
+        return;
+    }   
+
+
+    //receive packet
+    addr_len=sizeof(r_addr);
+
+
+    if ( recvfrom(sockfd, &pckt, sizeof(pckt), 0, 
+            (struct sockaddr*)&r_addr, (socklen_t*)&addr_len) <= 0) 
+    {
+        printf("Host not reachable\n");
+        return;
+    }
+
+
+    // else
+    //     {
+    //         clock_gettime(CLOCK_MONOTONIC, &time_end);
+              
+    //         double timeElapsed = ((double)(time_end.tv_nsec - time_start.tv_nsec))/1000000.0;
+    //         rtt_msec = (time_end.tv_sec-time_start.tv_sec) * 1000.0+ timeElapsed;
+              
+    //         // if packet was not sent, don't receive
+            
+    //             if(!(pckt.hdr.type ==69 && pckt.hdr.code==0)) 
+    //             {
+    //                 printf("Error..Packet received with ICMP type %d code %d\n", pckt.hdr.type, pckt.hdr.code);
+    //             }
+    //             else
+    //             {
+    //                 printf("%d bytes  (%s) rtt = %Lf ms.\n",  PING_PKT_S, inet_ntoa(ip_addr), rtt_msec);
+    //                 msg_received_count++;
+    //             }
+            
+    //     }    
+    
+    auto end = high_resolution_clock::now() ;
+    // auto difference = duration_cast<milliseconds>(end - start).count();
+    double difference = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+    
+    cout << "RTT taken  " << difference/1000000 << endl ;                      
+    //printf("\n===%s ping statistics===\n", ping_ip);
+    // printf("\n%d packets sent, %d packets received, %f percent packet loss. Total time: %Lf ms.\n\n",  msg_count, msg_received_count, ((msg_count - msg_received_count)/msg_count) * 100.0, total_msec);
+
+
+}
+
+
+int main(int argc, char *argv[]){
+
+
+    // getting IP address
+    int inet=0;
+    struct in_addr ip_addr;
+    struct icmp *icp;
+
+
+    
+
+
+    inet = inet_aton(argv[1], &ip_addr );
+    if(inet < 0){
+        printf("Bad hostname\n");
+        return 0;
+    }
+
+
+    //printf("%s is is addr", inet_ntoa(ip_addr));
+
+
+    // creating socket
+    int sockfd;
+    struct sockaddr_in addr_con;
+    int addrlen = sizeof(addr_con);
+    // char *buffer;
+    // buffer = (char*)malloc(PING_PKT_S* sizeof(char));
+
+
+    sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+    if(sockfd<0)
+    {
+        printf("\nSocket file descriptor not received!!\n");
+        return 0;
+    }
+    else
+        printf("\nSocket file descriptor %d received\n", sockfd);
+
+
+
+
+    //signal(SIGINT, intHandler);//catching interrupt
+    // icp = (struct icmp *)outpack;
+        // icp->icmp_type = ICMP_ECHO;
+        // icp->icmp_code = 0;
+        // icp->icmp_cksum = 0;
+        // icp->icmp_seq = 12345;
+        // icp->icmp_id = getpid();
+    addr_con.sin_family = AF_INET;
+    addr_con.sin_port = htons(99);
+    addr_con.sin_addr = ip_addr;
+
+
+    //send pings continuously
+    send_ping(sockfd, &addr_con, ip_addr);
+    
+    return 0;
+}
